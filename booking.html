@@ -1,0 +1,261 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management | Smart Patient Online Appointment System</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root { --primary: #1f8acb; --dark: #0b2e4f; --bg: #eef2f5; }
+        body { font-family: "Segoe UI", Arial, sans-serif; background: linear-gradient(135deg, #1f3c5b, #2c5364); padding: 20px; min-height: 100vh; margin: 0; }
+        .container { max-width: 1000px; background: white; margin: auto; padding: 30px; border-radius: 14px; box-shadow: 0 12px 28px rgba(0,0,0,0.3); box-sizing: border-box; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 25px; gap: 10px; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        input, select { padding: 12px; border-radius: 8px; border: 1px solid #b8cddd; width: 100%; box-sizing: border-box; font-size: 16px; }
+        .phone-container { display: flex; gap: 8px; }
+        .phone-container select { width: 140px; }
+        .actions { grid-column: span 2; text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        button { padding: 12px 25px; border-radius: 25px; border: none; font-weight: 600; cursor: pointer; transition: 0.3s; white-space: nowrap; }
+        .btn-submit { background: var(--primary); color: white; }
+        .btn-view { background: #27ae60; color: white; }
+        .btn-reset { background: #95a5a6; color: white; }
+        
+        #appointmentCardWrap { margin-top: 30px; display: none; flex-direction: column; align-items: center; width: 100%; }
+        .app-card { background: #ffffff; padding: 25px; border-radius: 12px; width: 400px; max-width: 100%; border: 2px solid var(--primary); color: #333; box-sizing: border-box; }
+        .card-header { border-bottom: 2px solid var(--primary); margin-bottom: 15px; padding-bottom: 10px; text-align: center; color: var(--primary); }
+        .card-body p { margin: 8px 0; font-size: 14px; border-bottom: 1px solid #f9f9f9; }
+        #qrcode { margin: 20px auto; display: flex; justify-content: center; }
+        .btn-pdf { background: #e74c3c; color: white; margin-top: 15px; }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 20px; border-radius: 10px; }
+            .header-row { flex-direction: column; text-align: center; }
+            .header-row h2 { font-size: 20px; margin-bottom: 5px; }
+            .btn-view { width: 100%; margin: 0; }
+            .form-grid { grid-template-columns: 1fr; gap: 12px; }
+            .phone-container { flex-direction: column; gap: 10px; }
+            .phone-container select { width: 100%; }
+            .actions { grid-column: span 1; flex-direction: column; width: 100%; }
+            .actions button { width: 100%; margin: 0; }
+            .app-card { width: 100%; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-row">
+        <h2>🏥 Online Patient Appointment Registration</h2>
+        <button type="button" class="btn-view" onclick="window.location.href='index.html'">🏥 Back To Dashboard</button>
+    </div>
+
+    <form id="patientForm">
+        <div class="form-grid">
+            <input id="patient_name" placeholder="Full Name" maxlength="20" required oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')">
+            <select id="gender" required><option value="">Select Gender</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Others</option>
+            </select>
+            <input id="age" placeholder="Age" required oninput="this.value=this.value.replace(/[^0-9]/g,''); if(this.value > 99) this.value = 99;">
+            <select id="disease" required>
+                <option value="">Select Disease</option>
+                <option>Fever</option><option>Cold</option><option>Flu</option>
+                <option>Headache</option><option>Migraine</option>
+                <option>Heart Problem</option><option>Skin Allergy</option>
+                <option>Diabetes</option><option>Asthma</option>
+            </select>
+            <select id="priority"><option>Normal</option><option>Emergency</option></select>
+            <select id="time_slot" required>
+                <option value="">Time Slot</option>
+                <option>Morning (09:00 - 12:00)</option>
+                <option>Afternoon (13:00 - 16:00)</option>
+                <option>Evening (17:00 - 20:00)</option>
+            </select>
+            <input id="bp" placeholder="BP (e.g. 120)" maxlength="5" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+            <input id="temp" placeholder="Temp °C" maxlength="5" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+            <input id="weight" placeholder="Weight kg" maxlength="3" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <div class="phone-container">
+                <select id="country_code">
+                    <option value="+91" data-len="10">🇮🇳 India</option>
+                    <option value="+1" data-len ="10">🇺🇸 USA</option>
+                    <option value="+44" data-len="10">🇬🇧 UK</option> 
+                    <option value="+61" data-len="9">🇦🇺 Australia</option>
+                    <option value="+81" data-len="10">🇯🇵 Japan</option>
+                    <option value="+49" data-len="11">🇩🇪 Germany</option>
+                    <option value="+33" data-len="9">🇫🇷 France</option>
+                    <option value="+971" data-len="9">🇦🇪 UAE</option>
+                    <option value="+86" data-len="11">🇨🇳 China</option>  
+                    <option value="+7" data-len="10">🇷🇺 Russia</option>
+                    <option value="+39" data-len="10">🇮🇹 Italy</option>
+                    <option value="+34" data-len="9">🇪🇸 Spain</option>
+                    <option value="+55" data-len="11">🇧🇷 Brazil</option>
+                    <option value="+52" data-len="10">🇲🇽 Mexico</option>
+                    <option value="+27" data-len="9">🇿🇦 South Africa</option>
+                    <option value="+82" data-len="10">🇰🇷 South Korea</option>
+                    <option value="+60" data-len="9">🇲🇾 Malaysia</option>
+                    <option value="+65" data-len="8">🇸🇬 Singapore</option>
+                    <option value="+92" data-len="10">🇵🇰 Pakistan</option>
+                </select>
+                <input id="phone" placeholder="Phone Number" maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            </div>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn-submit" id="saveBtn">Save Patient</button>
+            <button type="reset" class="btn-reset">Clear</button>
+            <button type="button" class="btn-view" onclick="window.location.href='records.html'">📋 View Records</button>
+        </div>
+    </form>
+
+    <div id="appointmentCardWrap">
+        <div id="captureArea" class="app-card">
+            <div class="card-header"><h3>Appointment Card</h3></div>
+            <div class="card-body">
+                <p><strong>Appt ID:</strong> <span id="resID"></span></p>
+                <p><strong>Date:</strong> <span id="resDate"></span></p>
+                <p><strong>Patient:</strong> <span id="resName"></span></p>
+                <p><strong>Disease:</strong> <span id="resDisease"></span></p>
+                <p><strong>Doctor:</strong> <span id="resDoc"></span></p>
+                <p><strong>Dept:</strong> <span id="resSpec"></span></p>
+            </div>
+            <div id="qrcode"></div>
+            <p style="text-align:center; color:red; font-size:12px; font-weight:bold;">
+                Please arrive 15 minutes earlier from your Appointment time.
+            </p>
+        </div>
+        <button onclick="downloadPDF()" class="btn-pdf">📥 Download PDF</button>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://vgevcshtajxfmzumokok.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnZXZjc2h0YWp4Zm16dW1va29rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3ODI2MjgsImV4cCI6MjA4MzM1ODYyOH0.OS74joMWErQtFFZOOunf6Ni3Ueye1sX8Vw-czVSLVX4";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const diseaseMap = {
+    'Fever': 'General Physician', 'Cold': 'General Physician', 'Flu': 'General Physician',
+    'Headache': 'Neurologist', 'Migraine': 'Neurologist',
+    'Heart Problem': 'Cardiologist', 'Skin Allergy': 'Dermatologist',
+    'Diabetes': 'Endocrinologist', 'Asthma': 'Pulmonologist'
+};
+
+document.getElementById('patientForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+
+    const payload = {
+        patient_name: document.getElementById('patient_name').value,
+        gender: document.getElementById('gender').value,
+        age: parseInt(document.getElementById('age').value),
+        disease: document.getElementById('disease').value,
+        priority: document.getElementById('priority').value,
+        time_slot: document.getElementById('time_slot').value,
+        blood_pressure: document.getElementById('bp').value,
+        temperature: document.getElementById('temp').value,
+        weight_kg: document.getElementById('weight').value,
+        phone_number: document.getElementById('country_code').value + document.getElementById('phone').value,
+        visit_date: new Date().toISOString()
+    };
+
+    try {
+        const { data: p, error } = await _supabase.from('patients').insert([payload]).select().single();
+        if (error) throw error;
+
+        const spec = diseaseMap[payload.disease] || 'General Physician';
+        let docName = "Duty Doctor";
+        
+        try {
+            const { data: doc } = await _supabase.from('doctors').select('doctor_name').eq('specialization', spec).limit(1).single();
+            if(doc) docName = doc.doctor_name;
+            
+            await _supabase.from('appointments').insert([{
+                patient_id: p.patient_id,
+                disease: payload.disease,
+                time_slot: payload.time_slot,
+                appointment_date: new Date().toISOString().split('T')[0]
+            }]);
+        } catch (innerErr) { console.log("Doctor fallback used."); }
+
+        // Update UI Card
+        document.getElementById('resID').innerText = p.patient_id;
+        document.getElementById('resDate').innerText = new Date().toLocaleDateString();
+        document.getElementById('resName').innerText = p.patient_name;
+        document.getElementById('resDisease').innerText = p.disease;
+        document.getElementById('resDoc').innerText = docName;
+        document.getElementById('resSpec').innerText = spec;
+
+        const qrText = `Patient: ${p.patient_name}\nGender: ${p.gender}\nAge: ${p.age}\nPhone: ${p.phone_number}\nBP: ${p.blood_pressure}\nTemp: ${p.temperature}\nWeight: ${p.weight_kg}\nDisease: ${p.disease}\nDoctor: ${docName}\n\nPlease arrive 15 mins early.`;
+        
+        document.getElementById('qrcode').innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), { text: qrText, width: 140, height: 140 });
+
+        document.getElementById('appointmentCardWrap').style.display = 'flex';
+        
+        // --- NEW SMS TRIGGER ---
+        sendSMSNotification(payload, p.patient_id);
+        
+        alert("Success! Your Appointment is Approved.");
+
+    } catch (err) {
+        console.error(err);
+        alert("System Error: Could not generate card.");
+    } finally {
+        saveBtn.disabled = false;
+    }
+});
+
+// NEW FUNCTION: TWILIO SMS SENDING
+async function sendSMSNotification(data, id) {
+    const accountSid = 'AC5965de300cf2c2c62ed7302496b3089b'; 
+    const authToken = '45b3084aaad3bf3171967a062a1ed83a';   
+    const twilioNumber = '+15055948951'; 
+
+    const appointmentDate = new Date().toLocaleDateString();
+    const messageBody = `YOUR APPOINTMENT IS SUCCESSFULLY BOOKED
+Hospital: Medical Central
+Date: ${appointmentDate}
+Time: ${data.time_slot}
+Appointment ID: ${id}
+
+Please arrive 15 minutes early from your appointment !.`;
+
+    try {
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Basic ' + btoa(accountSid + ':' + authToken),
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({ 
+                'To': data.phone_number, 
+                'From': twilioNumber, 
+                'Body': messageBody 
+            })
+        });
+        console.log("SMS notification sent.");
+    } catch (e) { 
+        console.error("SMS Failed:", e); 
+    }
+}
+
+async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const capture = document.getElementById('captureArea');
+    html2canvas(capture).then(canvas => {
+        const img = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        pdf.addImage(img, 'PNG', 10, 10, 180, 150);
+        pdf.save("Appointment_Card.pdf");
+    });
+}
+</script>
+</body>
+</html>
+
+

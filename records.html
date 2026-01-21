@@ -1,0 +1,320 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Records | Hospital Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial; background: #eef2f5; padding: 30px; margin: 0; }
+        .container { max-width: 1300px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        h2 { text-align: center; color: #0b2e4f; margin-bottom: 20px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        button { padding: 10px 18px; border-radius: 20px; border: none; background: #1f8acb; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.8; }
+        .action-btn { padding: 6px 12px; border-radius: 14px; font-size: 12px; margin: 2px; border: none; cursor: pointer; }
+        .edit-btn { background: #ffa500; color: #fff; }
+        .delete-btn { background: #e74c3c; color: #fff; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #dee2e6; text-align: center; font-size: 13px; }
+        th { background: #1f8acb; color: white; position: sticky; top: 0; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #f1f4f7; }
+        .search-box { padding: 9px 12px; border-radius: 8px; border: 1px solid #b8cddd; font-size: 15px; width: 350px; }
+        .badge { padding: 4px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; background: #d1ecf1; color: #0c5460; }
+
+        /* Edit Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background: white; margin: 5% auto; padding: 25px; width: 50%; border-radius: 12px; box-shadow: 0 5px 30px rgba(0,0,0,0.3); }
+        .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .edit-grid div { display: flex; flex-direction: column; }
+        label { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 5px; }
+        .modal input, .modal select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        .readonly { background: #f0f0f0; cursor: not-allowed; }
+        .modal-footer { margin-top: 20px; text-align: right; }
+        .btn-update { background: #27ae60; color: white; border-radius: 8px; padding: 10px 20px; }
+        .btn-cancel { background: #95a5a6; color: white; border-radius: 8px; padding: 10px 20px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="top-bar">
+        <h2>📋 Patient Records</h2>
+        <button onclick="location.href='booking.html'">⬅ Back to Registration</button>
+    </div>
+
+    <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <input id="searchBar" class="search-box" placeholder="Search Name, Disease, or Phone...">
+            <button id="exportCSV" style="margin-left:8px; background: #27ae60;">Export CSV</button>
+            <button id="exportPDF" style="margin-left:8px; background: #8e44ad;">Export PDF</button>
+        </div>
+        <div id="resultCount" style="color:#4f6f88; font-weight: bold;"></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Patient Name</th>
+                <th>Gen/Age</th>
+                <th>Disease</th>
+                <th>Priority</th>
+                <th>Time Slot</th>
+                <th>Vitals (BP/T/W)</th>
+                <th>Phone</th>
+                <th>Visit Date</th>
+                <th>Assigned Doctor</th>
+                <th>Specialization</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3>✏️ Edit Patient Record</h3>
+        <form id="editForm">
+            <div class="edit-grid">
+                <div><label>Patient ID</label><input id="edit_pid" class="readonly" readonly></div>
+                <div><label>Created Date</label><input id="edit_created" class="readonly" readonly></div>
+                
+                <div><label>Patient Name</label><input id="edit_name" required maxlength="20" oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')"></div>
+                <div><label>Gender</label><select id="edit_gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+                <div><label>Age</label><input id="edit_age" required oninput="this.value=this.value.replace(/[^0-9]/g,''); if(this.value > 99) this.value = 99;"></div>
+                <div>
+                    <label>Disease</label>
+                    <select id="edit_disease" required>
+                        <option>Fever</option><option>Cold</option><option>Flu</option>
+                        <option>Headache</option><option>Migraine</option>
+                        <option>Heart Problem</option><option>Skin Allergy</option>
+                        <option>Diabetes</option><option>Asthma</option>
+                        <option>Lung Infection</option>
+                    </select>
+                </div>
+                <div><label>Priority</label><select id="edit_priority"><option>Normal</option><option>Emergency</option></select></div>
+                <div><label>Time Slot</label><select id="edit_time_slot"><option>Morning (09:00 - 12:00)</option><option>Afternoon (13:00 - 16:00)</option><option>Evening (17:00 - 20:00)</option></select></div>
+                <div><label>Blood Pressure</label><input id="edit_bp" maxlength="7" oninput="this.value=this.value.replace(/[^0-9/]/g,'')"></div>
+                <div><label>Temperature (°C)</label><input id="edit_temp" maxlength="5" oninput="this.value=this.value.replace(/[^0-9.]/g,'')"></div>
+                <div><label>Weight (kg)</label><input id="edit_weight" maxlength="3" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                <div><label>Phone Number</label><input id="edit_phone" required oninput="this.value=this.value.replace(/[^0-9+]/g,'')"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-update">Update Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+const SUPABASE_URL = "https://vgevcshtajxfmzumokok.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnZXZjc2h0YWp4Zm16dW1va29rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3ODI2MjgsImV4cCI6MjA4MzM1ODYyOH0.OS74joMWErQtFFZOOunf6Ni3Ueye1sX8Vw-czVSLVX4";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allPatients = [];
+let originalDisease = "";
+
+const specMapping = {
+    'Fever': 'General Physician', 'Cold': 'General Physician', 'Flu': 'General Physician',
+    'Headache': 'Neurologist', 'Migraine': 'Neurologist',
+    'Heart Problem': 'Cardiologist', 'Skin Allergy': 'Dermatologist',
+    'Diabetes': 'Endocrinologist', 'Asthma': 'Pulmonologist', 'Lung Infection': 'Pulmonologist'
+};
+
+const doctorMapping = {
+    'General Physician': 'Dr. Meena',
+    'Neurologist': 'Dr. Haji deen',
+    'Cardiologist': 'Dr. Arun',
+    'Dermatologist': 'Dr. Suresh',
+    'Endocrinologist': 'Dr. Kavitha',
+    'Pulmonologist': 'Dr. Parivendhan'
+};
+
+async function loadData() {
+    try {
+        const { data, error } = await _supabase
+            .from('patients')
+            .select(`*, appointments (doctor_id, doctors (doctor_name, specialization))`)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allPatients = data.map(p => {
+            const appointment = p.appointments?.[0] || {};
+            const doctorFromDB = appointment.doctors || {};
+            const specialization = doctorFromDB.specialization || specMapping[p.disease] || "General";
+            const doctorName = doctorFromDB.doctor_name || doctorMapping[specialization] || "Duty Doctor";
+
+            return {
+                ...p,
+                mapped_doc: doctorName,
+                mapped_spec: specialization
+            };
+        });
+        renderTable(allPatients);
+    } catch (err) { 
+        console.error(err);
+        alert("Failed to load records."); 
+    }
+}
+
+function renderTable(data, keyword = "") {
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+    keyword = keyword.toLowerCase();
+    const filtered = data.filter(p => p.patient_name.toLowerCase().includes(keyword) || p.disease.toLowerCase().includes(keyword) || p.phone_number.includes(keyword));
+
+    filtered.forEach(p => {
+        const dateStr = p.visit_date ? new Date(p.visit_date).toLocaleDateString() : 'N/A';
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.patient_id}</td>
+                <td style="font-weight:600; color:#1f8acb;">${p.patient_name}</td>
+                <td>${p.gender} / ${p.age}</td>
+                <td><span class="badge">${p.disease}</span></td>
+                <td>${p.priority}</td>
+                <td>${p.time_slot}</td>
+                <td>${p.blood_pressure || '-'}<br>${p.temperature || '-'}°C<br>${p.weight_kg || '-'}kg</td>
+                <td>${p.phone_number}</td>
+                <td>${dateStr}</td>
+                <td><strong>${p.mapped_doc}</strong></td>
+                <td><em>${p.mapped_spec}</em></td>
+                <td>
+                    <button class="action-btn edit-btn" onclick="editPatient(${p.patient_id})">Edit</button>
+                    <button class="action-btn delete-btn" onclick="deletePatient(${p.patient_id})">Delete</button>
+                </td>
+            </tr>`;
+    });
+    document.getElementById('resultCount').textContent = `${filtered.length} Record(s) Found`;
+}
+
+function editPatient(id) {
+    const p = allPatients.find(item => item.patient_id === id);
+    if (!p) return;
+    originalDisease = p.disease;
+    document.getElementById('edit_pid').value = p.patient_id;
+    document.getElementById('edit_created').value = new Date(p.created_at).toLocaleDateString();
+    document.getElementById('edit_name').value = p.patient_name;
+    document.getElementById('edit_gender').value = p.gender;
+    document.getElementById('edit_age').value = p.age;
+    document.getElementById('edit_disease').value = p.disease;
+    document.getElementById('edit_priority').value = p.priority;
+    document.getElementById('edit_time_slot').value = p.time_slot;
+    document.getElementById('edit_bp').value = p.blood_pressure || "";
+    document.getElementById('edit_temp').value = p.temperature || "";
+    document.getElementById('edit_weight').value = p.weight_kg || "";
+    document.getElementById('edit_phone').value = p.phone_number;
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+document.getElementById('editForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('edit_pid').value;
+    const newDisease = document.getElementById('edit_disease').value;
+
+    const updatedData = {
+        patient_name: document.getElementById('edit_name').value,
+        gender: document.getElementById('edit_gender').value,
+        age: parseInt(document.getElementById('edit_age').value),
+        disease: newDisease,
+        priority: document.getElementById('edit_priority').value,
+        time_slot: document.getElementById('edit_time_slot').value,
+        blood_pressure: document.getElementById('edit_bp').value,
+        temperature: document.getElementById('edit_temp').value,
+        weight_kg: document.getElementById('edit_weight').value,
+        phone_number: document.getElementById('edit_phone').value
+    };
+
+    try {
+        await _supabase.from('patients').update(updatedData).eq('patient_id', id);
+        
+        if (newDisease !== originalDisease) {
+            const spec = specMapping[newDisease] || 'General Physician';
+            const { data: doc } = await _supabase.from('doctors').select('doctor_id').eq('specialization', spec).limit(1).single();
+            await _supabase.from('appointments').update({ 
+                doctor_id: doc ? doc.doctor_id : null,
+                disease: newDisease 
+            }).eq('patient_id', id);
+        } else {
+            await _supabase.from('appointments').update({ time_slot: updatedData.time_slot }).eq('patient_id', id);
+        }
+
+        alert("Your Appointment is updated successfully.");
+        closeEditModal();
+        loadData();
+    } catch (err) { alert("Update failed."); }
+});
+
+async function deletePatient(id) {
+    if (confirm("Are you sure want to delete your Appointment?")) {
+        try {
+            await _supabase.from('appointments').delete().eq('patient_id', id);
+            await _supabase.from('patients').delete().eq('patient_id', id);
+            loadData();
+        } catch (err) { alert("Delete failed."); }
+    }
+}
+
+// Export CSV
+document.getElementById('exportCSV').addEventListener('click', () => {
+    const keyword = document.getElementById('searchBar').value.toLowerCase();
+    const filteredData = allPatients.filter(p => p.patient_name.toLowerCase().includes(keyword) || p.disease.toLowerCase().includes(keyword) || p.phone_number.includes(keyword));
+    
+    let csv = "Name,Age/Gen,Disease,Priority,Time Slot,Vitals,Phone,Doctor,Specialization\n";
+    filteredData.forEach(p => {
+        csv += `"${p.patient_name}","${p.gender}/${p.age}","${p.disease}","${p.priority}","${p.time_slot}","${p.blood_pressure || '-'}/${p.temperature || '-'}C/${p.weight_kg || '-'}kg","${p.phone_number}","${p.mapped_doc}","${p.mapped_spec}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Patient_Records.csv';
+    a.click();
+});
+
+// Export PDF
+document.getElementById('exportPDF').addEventListener('click', () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const keyword = document.getElementById('searchBar').value.toLowerCase();
+    const filteredData = allPatients.filter(p => p.patient_name.toLowerCase().includes(keyword) || p.disease.toLowerCase().includes(keyword) || p.phone_number.includes(keyword));
+
+    doc.setFontSize(18);
+    doc.text("HOSPITAL PATIENT RECORDS", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Export Date: ${new Date().toLocaleDateString()}`, 14, 22);
+
+    const rows = filteredData.map(p => [
+        p.patient_name, `${p.gender}/${p.age}`, p.disease, p.priority, p.time_slot, 
+        `${p.blood_pressure || '-'}/${p.temperature || '-'}C/${p.weight_kg || '-'}kg`, 
+        p.phone_number, p.mapped_doc, p.mapped_spec
+    ]);
+
+    doc.autoTable({
+        startY: 30,
+        head: [['Name', 'Gen/Age', 'Disease', 'Priority', 'Time Slot', 'Vitals', 'Phone', 'Doctor', 'Specialization']],
+        body: rows,
+        theme: 'grid',
+        headStyles: { fillColor: [31, 138, 203] }
+    });
+
+    doc.save('Patient_Records.pdf');
+});
+
+document.getElementById('searchBar').addEventListener('input', (e) => renderTable(allPatients, e.target.value));
+loadData();
+</script>
+</body>
+</html>

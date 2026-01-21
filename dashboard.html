@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Hospital Admin Dashboard | Medical Central</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --primary: #1f8acb;
+      --secondary: #2ca58d;
+      --danger: #e74c3c;
+      --bg: #f4f7f9;
+      --card: #ffffff;
+      --text-dark: #2c3e50;
+      --text-muted: #7f8c8d;
+      --border: #e1e8ed;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-dark);
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* Clean Navbar */
+    .navbar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card); padding: 15px 25px; border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand i { color: var(--primary); font-size: 28px; }
+
+    /* Summary Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px; }
+    .kpi-card {
+      background: var(--card); padding: 20px; border-radius: 12px;
+      border: 1px solid var(--border); display: flex; align-items: center; gap: 15px;
+      transition: transform 0.2s;
+    }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .icon-circle {
+      width: 50px; height: 50px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .blue-bg { background: #e3f2fd; color: #1976d2; }
+    .green-bg { background: #e8f5e9; color: #2e7d32; }
+    .red-bg { background: #ffebee; color: #c62828; }
+    .purple-bg { background: #f3e5f5; color: #7b1fa2; }
+
+    .kpi-info h3 { margin: 0; font-size: 24px; color: var(--text-dark); }
+    .kpi-info p { margin: 0; font-size: 13px; color: var(--text-muted); font-weight: 600; }
+
+    /* Main Grid */
+    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
+    .section-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 25px; }
+    .section-title { font-size: 16px; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+
+    /* Table Styling */
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 12px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid var(--bg); }
+    td { padding: 12px; border-bottom: 1px solid var(--bg); font-size: 13.5px; }
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-red { background: #fdeaea; color: #d32f2f; }
+    .badge-blue { background: #e3f2fd; color: #1976d2; }
+
+    /* Dynamic Department Bars */
+    .dept-item { margin-bottom: 15px; }
+    .dept-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; font-weight: 600; }
+    .progress-track { height: 8px; background: #eee; border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 10px; }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border-radius: 8px; cursor: pointer; border: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-dark); }
+    .btn-outline:hover { background: var(--bg); }
+
+    @media (max-width: 1024px) { .kpi-grid { grid-template-columns: 1fr 1fr; } .main-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="navbar">
+      <div class="brand">
+        <i class="fa-solid fa-hospital-user"></i>
+        <div>
+          <h1 style="margin:0; font-size: 18px;">Hospital Admin Dashboard</h1>
+          <span style="font-size: 12px; color: var(--text-muted);" id="liveDate">Loading date...</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <div id="liveClock" style="font-weight:700; color:var(--primary); margin-right: 15px;">00:00:00</div>
+        <button class="btn btn-outline" id="refreshBtn"><i class="fa-solid fa-arrows-rotate"></i> Sync Data</button>
+        <a class="btn btn-primary" href="records.html"><i class="fa-solid fa-clipboard-list"></i> View Records</a>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="icon-circle blue-bg"><i class="fa-solid fa-user-injured"></i></div>
+        <div class="kpi-info"><h3 id="kpiTotal">-</h3><p>Total Patients</p></div>
+      </div>
+      <div class="kpi-card">
+        <div class="icon-circle green-bg"><i class="fa-solid fa-calendar-check"></i></div>
+        <div class="kpi-info"><h3 id="kpiToday">-</h3><p>Today's Visits</p></div>
+      </div>
+      <div class="kpi-card">
+        <div class="icon-circle red-bg"><i class="fa-solid fa-house-medical-alert"></i></div>
+        <div class="kpi-info"><h3 id="kpiEmergency">-</h3><p>Emergencies</p></div>
+      </div>
+      <div class="kpi-card">
+        <div class="icon-circle purple-bg"><i class="fa-solid fa-user-doctor"></i></div>
+        <div class="kpi-info"><h3 id="kpiDocs">6</h3><p>On-Duty Doctors</p></div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="left-pane">
+        <div class="section-card">
+          <div class="section-title"><i class="fa-solid fa-chart-bar"></i> Disease Case Distribution</div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: -10px; margin-bottom: 20px;">Analysis of current patient diagnoses across the facility.</p>
+          <canvas id="diseaseBarChart" height="150"></canvas>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Patient Activity</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Patient Name</th>
+                <th>Disease</th>
+                <th>Time Slot</th>
+                <th>Priority</th>
+              </tr>
+            </thead>
+            <tbody id="recentTableBody">
+              </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="right-pane">
+        <div class="section-card">
+          <div class="section-title"><i class="fa-solid fa-users-gear"></i> Departmental Workload</div>
+          <div id="deptLoadContainer">
+            </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title"><i class="fa-solid fa-venus-mars"></i> Patient Demographics</div>
+          <canvas id="genderChart" height="200"></canvas>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title"><i class="fa-solid fa-bolt"></i> Quick Actions</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+             <button class="btn btn-outline" onclick="alert('Exporting CSV...')"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+             <button class="btn btn-outline" onclick="alert('Exporting PDF...')"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+             <a class="btn btn-primary" href="index.html" style="grid-column: span 2; justify-content: center;"><i class="fa-solid fa-user-plus"></i> Register New Patient</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const SUPABASE_URL = "https://vgevcshtajxfmzumokok.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnZXZjc2h0YWp4Zm16dW1va29rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3ODI2MjgsImV4cCI6MjA4MzM1ODYyOH0.OS74joMWErQtFFZOOunf6Ni3Ueye1sX8Vw-czVSLVX4";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let diseaseBarChart, genderChart;
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+  document.getElementById('liveDate').innerText = now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+setInterval(updateClock, 1000);
+
+async function initDashboard() {
+    const { data: patients, error } = await _supabase.from('patients').select('*').order('created_at', { ascending: false });
+    if (error) return console.error(error);
+
+    processAnalytics(patients);
+    renderRecentTable(patients.slice(0, 5));
+    renderDeptLoad(patients);
+}
+
+function renderRecentTable(data) {
+    document.getElementById('recentTableBody').innerHTML = data.map(p => `
+      <tr>
+        <td><strong>${p.patient_name}</strong></td>
+        <td>${p.disease}</td>
+        <td>${p.time_slot}</td>
+        <td><span class="badge ${p.priority === 'Emergency' ? 'badge-red' : 'badge-blue'}">${p.priority}</span></td>
+      </tr>
+    `).join('');
+}
+
+function renderDeptLoad(patients) {
+    const depts = {};
+    patients.forEach(p => depts[p.disease] = (depts[p.disease] || 0) + 1);
+    const sorted = Object.entries(depts).sort((a,b) => b[1] - a[1]).slice(0, 4);
+    
+    document.getElementById('deptLoadContainer').innerHTML = sorted.map(([name, count]) => {
+        const pcent = (count / patients.length) * 100;
+        return `
+          <div class="dept-item">
+            <div class="dept-label"><span>${name}</span><span>${count} Pts</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:${pcent}%"></div></div>
+          </div>
+        `;
+    }).join('');
+}
+
+function processAnalytics(patients) {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+
+    document.getElementById('kpiTotal').textContent = patients.length;
+    document.getElementById('kpiToday').textContent = patients.filter(p => p.created_at?.startsWith(today)).length;
+    document.getElementById('kpiEmergency').textContent = patients.filter(p => p.priority === 'Emergency').length;
+
+    // Disease Count for Bar Chart
+    const diseaseMap = {};
+    patients.forEach(p => { diseaseMap[p.disease] = (diseaseMap[p.disease] || 0) + 1; });
+    const sortedDisease = Object.entries(diseaseMap).sort((a,b) => b[1] - a[1]).slice(0, 6);
+
+    const genderMap = patients.reduce((acc, p) => { acc[p.gender] = (acc[p.gender] || 0) + 1; return acc; }, {});
+
+    renderCharts(sortedDisease, genderMap);
+}
+
+function renderCharts(diseaseData, gender) {
+    if (diseaseBarChart) diseaseBarChart.destroy();
+    if (genderChart) genderChart.destroy();
+
+    // Horizontal Bar Chart for Diseases
+    diseaseBarChart = new Chart(document.getElementById('diseaseBarChart'), {
+        type: 'bar',
+        data: {
+            labels: diseaseData.map(d => d[0]),
+            datasets: [{
+                label: 'Total Cases',
+                data: diseaseData.map(d => d[1]),
+                backgroundColor: '#1f8acb',
+                borderRadius: 5,
+                barThickness: 20
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, grid: { display: false } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+
+    // Donut Chart
+    genderChart = new Chart(document.getElementById('genderChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Male', 'Female', 'Other'],
+            datasets: [{
+                data: [gender['Male'] || 0, gender['Female'] || 0, gender['Other'] || 0],
+                backgroundColor: ['#1f8acb', '#2ca58d', '#fbbf24'],
+                borderWidth: 0
+            }]
+        },
+        options: { cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+    });
+}
+
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    initDashboard();
+});
+
+updateClock();
+initDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TR Medical Central | Trusted Healthcare Excellence</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #1f8acb;
+            --secondary: #2ca58d;
+            --dark: #0b2e4f;
+            --light-bg: #f8fbff;
+            --overlay: rgba(255, 255, 255, 0.88);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        /* --- HERO SECTION --- */
+        .hero-section {
+            background-image: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=2053&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .hero-overlay {
+            background: var(--overlay);
+            width: 100%;
+            height: 100%;
+            padding: 60px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hospital-name {
+            font-size: clamp(2.5rem, 7vw, 4.5rem);
+            font-weight: 800;
+            color: var(--dark);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+
+        .about-text {
+            max-width: 800px;
+            margin: 25px auto;
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: #444;
+        }
+
+        /* --- SPECIALITIES SECTION (Apollo Inspired) --- */
+        .specialities-container {
+            padding: 80px 20px;
+            background: #ffffff;
+            text-align: center;
+        }
+
+        .section-tag {
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 2px;
+        }
+
+        .section-title {
+            font-size: 32px;
+            color: var(--dark);
+            margin: 10px 0 40px;
+        }
+
+        .spec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .spec-card {
+            background: var(--light-bg);
+            padding: 35px 20px;
+            border-radius: 15px;
+            border: 1px solid #eef2f6;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .spec-card:hover {
+            background: #ffffff;
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(31, 138, 203, 0.12);
+            border-color: var(--primary);
+        }
+
+        .spec-card i {
+            font-size: 45px;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .spec-card h4 {
+            margin: 10px 0;
+            color: var(--dark);
+            font-size: 19px;
+            font-weight: 700;
+        }
+
+        .spec-card p {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+        }
+
+        /* --- ACTION BOXES --- */
+        .action-container {
+            padding: 60px 20px;
+            background: #f4f7f9;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .action-box {
+            background: white;
+            width: 400px;
+            max-width: 100%;
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            border-bottom: 5px solid transparent;
+        }
+
+        .box-blue { border-color: var(--primary); }
+        .box-green { border-color: var(--secondary); }
+
+        .action-box:hover {
+            transform: scale(1.02);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+        .action-box i { font-size: 50px; margin-bottom: 20px; }
+        .box-blue i { color: var(--primary); }
+        .box-green i { color: var(--secondary); }
+
+        .action-box h3 { font-size: 22px; margin: 10px 0; color: var(--dark); }
+
+        /* --- ADMIN MODAL --- */
+        #adminModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 46, 79, 0.9);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-card input {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .btn-group { display: flex; gap: 10px; }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-go { background: var(--secondary); color: white; }
+        .btn-close { background: #eee; }
+
+        @media (max-width: 768px) {
+            .spec-grid { grid-template-columns: repeat(2, 1fr); }
+            .action-container { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <section class="hero-section">
+        <div class="hero-overlay">
+            <h1 class="hospital-name">Medical Central</h1>
+            <div class="about-text">
+                Medical Central is a leading multi-specialty healthcare provider dedicated to clinical excellence. 
+                Combining world-class medical technology with compassionate care, we provide advanced diagnostics 
+                and precision treatments to ensure a patient-first experience.
+            </div>
+        </div>
+    </section>
+
+    <section class="specialities-container">
+        <span class="section-tag">Centres of Excellence</span>
+        <h2 class="section-title">Our Medical Specialities</h2>
+        
+        <div class="spec-grid">
+            <a href="booking.html?disease=Heart+Problem" class="spec-card">
+                <i class="fa-solid fa-heart-pulse"></i>
+                <h4>Cardiology</h4>
+                <p>Advanced Heart Care</p>
+            </a>
+            <a href="booking.html?disease=Migraine" class="spec-card">
+                <i class="fa-solid fa-brain"></i>
+                <h4>Neurology</h4>
+                <p>Brain & Nerve Expert</p>
+            </a>
+            <a href="booking.html?disease=Skin+Allergy" class="spec-card">
+                <i class="fa-solid fa-hand-dots"></i>
+                <h4>Dermatology</h4>
+                <p>Skin & Allergy Care</p>
+            </a>
+            <a href="booking.html?disease=Diabetes" class="spec-card">
+                <i class="fa-solid fa-droplet"></i>
+                <h4>Endocrinology</h4>
+                <p>Diabetes Management</p>
+            </a>
+            <a href="booking.html?disease=Asthma" class="spec-card">
+                <i class="fa-solid fa-lungs"></i>
+                <h4>Pulmonology</h4>
+                <p>Respiratory Health</p>
+            </a>
+            <a href="booking.html?disease=Fever" class="spec-card">
+                <i class="fa-solid fa-stethoscope"></i>
+                <h4>General Medicine</h4>
+                <p>Primary Healthcare</p>
+            </a>
+        </div>
+    </section>
+
+    <section class="action-container">
+        <div class="action-box box-blue" onclick="window.location.href='booking.html'">
+            <i class="fa-solid fa-calendar-check"></i>
+            <h3>Book an Appointment</h3>
+            <p>Register online for quick consultations.</p>
+        </div>
+
+        <div class="action-box box-green" onclick="showAdminGate()">
+            <i class="fa-solid fa-user-shield"></i>
+            <h3>Hospital Dashboard</h3>
+            <p>Access for Authorized Staff Only.</p>
+        </div>
+    </section>
+
+    <div id="adminModal">
+        <div class="modal-card">
+            <i class="fa-solid fa-lock" style="font-size: 40px; color: var(--secondary);"></i>
+            <h3>Admin Access</h3>
+            <p>Enter administrative password to continue.</p>
+            <input type="password" id="passInput" placeholder="Password">
+            <p id="errMsg" style="color: red; font-size: 13px; display: none;">Wrong password. Access denied.</p>
+            <div class="btn-group">
+                <button class="btn btn-close" onclick="hideAdminGate()">Cancel</button>
+                <button class="btn btn-go" onclick="checkAuth()">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showAdminGate() {
+            document.getElementById('adminModal').style.display = 'flex';
+            document.getElementById('passInput').focus();
+        }
+
+        function hideAdminGate() {
+            document.getElementById('adminModal').style.display = 'none';
+            document.getElementById('passInput').value = '';
+            document.getElementById('errMsg').style.display = 'none';
+        }
+
+        function checkAuth() {
+            const pass = document.getElementById('passInput').value;
+            // SET YOUR PASSWORD HERE
+            if(pass === "admin123") {
+                window.location.href = "dashboard.html";
+            } else {
+                document.getElementById('errMsg').style.display = 'block';
+                document.getElementById('passInput').value = '';
+            }
+        }
+
+        // Allow 'Enter' key to submit
+        document.getElementById('passInput').addEventListener('keypress', function(e) {
+            if(e.key === 'Enter') checkAuth();
+        });
+    </script>
+</body>
+</html>
