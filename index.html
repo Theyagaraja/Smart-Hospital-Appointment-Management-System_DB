@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TR Medical Central | Trusted Healthcare Excellence</title>
+    <title>Medical Central | Trusted Healthcare Excellence</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -62,7 +62,7 @@
             color: #444;
         }
 
-        /* --- SPECIALITIES SECTION (Apollo Inspired) --- */
+        /* --- SPECIALITIES SECTION --- */
         .specialities-container {
             padding: 80px 20px;
             background: #ffffff;
@@ -124,12 +124,6 @@
             font-weight: 700;
         }
 
-        .spec-card p {
-            font-size: 14px;
-            color: #666;
-            margin: 0;
-        }
-
         /* --- ACTION BOXES --- */
         .action-container {
             padding: 60px 20px;
@@ -155,17 +149,63 @@
 
         .box-blue { border-color: var(--primary); }
         .box-green { border-color: var(--secondary); }
-
-        .action-box:hover {
-            transform: scale(1.02);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-        }
-
+        .action-box:hover { transform: scale(1.02); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
         .action-box i { font-size: 50px; margin-bottom: 20px; }
         .box-blue i { color: var(--primary); }
         .box-green i { color: var(--secondary); }
-
         .action-box h3 { font-size: 22px; margin: 10px 0; color: var(--dark); }
+
+        /* --- NEW HOSPITAL GALLERY SECTION --- */
+        .hospital-intro-section {
+            max-width: 1000px;
+            margin: 60px auto;
+            padding: 0 20px 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+        }
+
+        .intro-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+            transition: transform 0.4s ease;
+            text-align: center;
+            border: 1px solid #eee;
+        }
+
+        .intro-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .intro-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        .intro-text {
+            padding: 30px 20px;
+            background: #fff;
+        }
+
+        .intro-text h3 {
+            margin: 0;
+            color: var(--dark);
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .gallery-title {
+            text-align: center;
+            color: var(--dark);
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+            font-weight: 800;
+        }
 
         /* --- ADMIN MODAL --- */
         #adminModal {
@@ -198,20 +238,15 @@
         }
 
         .btn-group { display: flex; gap: 10px; }
-        .btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .btn { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; }
         .btn-go { background: var(--secondary); color: white; }
         .btn-close { background: #eee; }
 
         @media (max-width: 768px) {
             .spec-grid { grid-template-columns: repeat(2, 1fr); }
             .action-container { flex-direction: column; align-items: center; }
+            .gallery-title { font-size: 1.8rem; }
+            .intro-text h3 { font-size: 1.2rem; }
         }
     </style>
 </head>
@@ -280,6 +315,47 @@
         </div>
     </section>
 
+   <section class="hospital-intro-section">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span class="section-tag">Patient Experience</span>
+            <h2 class="gallery-title">Our Commitment to Excellence</h2>
+        </div>
+
+        <div class="intro-card">
+            <img src="./doctors-team.jpg" alt="Our Medical Team">
+            <div class="intro-text">
+                <h3>Our experienced multi-specialty doctors delivering trusted healthcare</h3>
+            </div>
+        </div>
+
+        <div class="intro-card">
+            <img src="./patient-care.jpg" alt="Patient Care">
+            <div class="intro-text">
+                <h3>Compassionate care and patient-first approach in every interaction</h3>
+            </div>
+        </div>
+
+        <div class="intro-card">
+            <img src="./pediatric.jpg" alt="Pediatric Healthcare">
+            <div class="intro-text">
+                <h3>Advanced pediatric care with comfort and safety for our youngest patients</h3>
+            </div>
+        </div>
+
+        <div class="intro-card">
+            <img src="./senior-care.jpg" alt="Geriatric Support">
+            <div class="intro-text">
+                <h3>Dedicated geriatric care with continuous monitoring and emotional support</h3>
+            </div>
+        </div>
+
+        <div class="intro-card">
+            <img src="./family-health.jpg" alt="Modern Treatment">
+            <div class="intro-text">
+                <h3>Holistic treatment with modern medical facilities for your whole family</h3>
+            </div>
+        </div>
+    </section>    </section>
     <div id="adminModal">
         <div class="modal-card">
             <i class="fa-solid fa-lock" style="font-size: 40px; color: var(--secondary);"></i>
@@ -308,7 +384,6 @@
 
         function checkAuth() {
             const pass = document.getElementById('passInput').value;
-            // SET YOUR PASSWORD HERE
             if(pass === "admin123") {
                 window.location.href = "dashboard.html";
             } else {
@@ -317,7 +392,6 @@
             }
         }
 
-        // Allow 'Enter' key to submit
         document.getElementById('passInput').addEventListener('keypress', function(e) {
             if(e.key === 'Enter') checkAuth();
         });
