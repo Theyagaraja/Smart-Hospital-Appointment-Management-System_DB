@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -44,6 +44,16 @@
             .actions button { width: 100%; margin: 0; }
             .app-card { width: 100%; padding: 15px; }
         }
+body {
+  background: 
+    linear-gradient(rgba(255,255,255,0.75), rgba(255,255,255,0.75)),
+    url("hospital-corridor.jpg") no-repeat center center / cover;
+.container {
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+}
+}
     </style>
 </head>
 <body>
@@ -51,7 +61,7 @@
 <div class="container">
     <div class="header-row">
         <h2>🏥 Online Patient Appointment Registration</h2>
-        <button type="button" class="btn-view" onclick="window.location.href='index.html'">🏥 Back To Dashboard</button>
+        <button type="button" class="btn-view" onclick="window.location.href='index.html'">🏥 Back To Home</button>
     </div>
 
     <form id="patientForm">
@@ -79,7 +89,7 @@
             </select>
             <input id="bp" placeholder="BP (e.g. 120)" maxlength="5" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
             <input id="temp" placeholder="Temp °C" maxlength="5" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
-            <input id="weight" placeholder="Weight kg" maxlength="3" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <input id="weight" placeholder="Weight kg" maxlength="3" oninput="this.value=this.value.replace(/[^0-9]/g,'');if(this.value > 140) this.value = 140;">
             <div class="phone-container">
                 <select id="country_code">
                     <option value="+91" data-len="10">🇮🇳 India</option>
@@ -106,9 +116,8 @@
             </div>
         </div>
         <div class="actions">
-            <button type="submit" class="btn-submit" id="saveBtn">Save Patient</button>
-            <button type="reset" class="btn-reset">Clear</button>
-            
+            <button type="submit" class="btn-submit" id="saveBtn">Confirm Appointment</button>
+            <button type="reset" class="btn-reset">Reset</button>
         </div>
     </form>
 
@@ -257,6 +266,3 @@ async function downloadPDF() {
 </script>
 </body>
 </html>
-
-
-
